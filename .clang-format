@@ -1,0 +1,54 @@
+# Modified from
+# - https://github.com/arav-jp/arav_edge_control/blob/c968ef705620ff7b450d2bdce36d2249fd8681d5/.clang-format
+# - https://github.com/autowarefoundation/autoware.universe/blob/6e5d597e7b7b47284819d7c8278abe82bcd760d7/.clang-format
+
+BasedOnStyle: Google
+
+IncludeBlocks: Preserve
+SortIncludes: false
+AccessModifierOffset: -2
+AlignAfterOpenBracket: AlwaysBreak
+AllowShortFunctionsOnASingleLine: InlineOnly
+BraceWrapping:
+  AfterClass: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+BreakBeforeBraces: Custom
+ColumnLimit: 120
+ConstructorInitializerIndentWidth: 0
+ContinuationIndentWidth: 2
+DerivePointerAlignment: false
+PointerAlignment: Middle
+ReflowComments: false
+SpacesInLineCommentPrefix:
+  Minimum: 0
+  Maximum: -1
+IncludeCategories:
+  # C++ system headers
+  - Regex: <[a-z_]*>
+    Priority: 6
+    CaseSensitive: true
+  # C system headers
+  - Regex: <.*\.h>
+    Priority: 5
+    CaseSensitive: true
+  # Boost headers
+  - Regex: boost/.*
+    Priority: 4
+    CaseSensitive: true
+  # Message headers
+  - Regex: .*_msgs/.*
+    Priority: 3
+    CaseSensitive: true
+  - Regex: .*_srvs/.*
+    Priority: 3
+    CaseSensitive: true
+  # Other Package headers
+  - Regex: <.*>
+    Priority: 2
+    CaseSensitive: true
+  # Local package headers
+  - Regex: '".*"'
+    Priority: 1
+    CaseSensitive: true
