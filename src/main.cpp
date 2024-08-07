@@ -1,5 +1,6 @@
 #include <iostream>
 #include <Eigen/Dense>
+#include "../third_party/matplotlib-cpp/matplotlibcpp.h"
 
 int main()
 {
@@ -13,6 +14,11 @@ int main()
 
   Eigen::Vector2d result = mat * vec;
   std::cout << "The result of mat * vec is:\n" << result << std::endl;
+
+  // Plotting example
+  namespace plt = matplotlibcpp;
+  plt::plot({1, 3, 2, 4});
+  plt::show();
 
   return 0;
 }
