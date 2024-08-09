@@ -1,0 +1,126 @@
+<?xml version="1.0" ?>
+<robot name="standard3link" xmlns:xacro="http://ros.org/wiki/xacro">
+  <!-- 設定ファイル読み込み -->
+  <xacro:property name="backhoe_configs_file" value="$(find manipulator_planner)/backhoe_description/config/backhoe_configs.yaml" />
+  <xacro:property name="backhoe_configs_dir" value="${xacro.load_yaml(backhoe_configs_file)}"/>
+  <xacro:property name="backhoe_configs" value="${backhoe_configs_dir['backhoe_configs']}"/>
+  <xacro:property name="link_lengths" value="${backhoe_configs['link_lengths']}"/>
+
+  <!-- 共通マクロと読み込み -->
+  <xacro:include filename="$(find manipulator_planner)/backhoe_description/urdf/common.xacro"/>
+
+  <!-- リンク長設定 -->
+  <xacro:property name="joint_names" value="${joint_names}" />
+  <xacro:property name="boom_offset_z" value="${link_lengths['boom_offset_z']}" />
+  <xacro:property name="boom_offset_y" value="${link_lengths['boom_offset_y']}" />
+  <xacro:property name="boom_offset_x" value="${link_lengths['boom_offset_x']}" />
+  <xacro:property name="boom_length" value="${link_lengths['boom_length']}" />
+  <xacro:property name="arm_length" value="${link_lengths['arm_length']}" />
+  <xacro:property name="bucket_length" value="${link_lengths['bucket_length']}" />
+  <xacro:property name="tip_width" value="${link_lengths['tip_width']}" />
+
+
+  <link name="base_link" />
+
+  <!-- body_link -->
+  <link name="body_link">
+    <visual>
+      <origin xyz="0 0 ${boom_offset_z/2}" rpy="0 0 0" />
+      <geometry>
+        <box size="${2*boom_offset_x} ${2*boom_offset_x} ${boom_offset_z}"/>
+      </geometry>
+      <material name="color0"/>
+    </visual>
+  </link>
+  <joint name="body" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="body_link"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-${M_PI}" upper="${M_PI}" velocity="1.0" effort="300.0"/>
+  </joint>
+
+  <!-- boom_link -->
+  <link name="boom_link">
+    <visual>
+      <origin xyz="${boom_length/2} 0 0" rpy="0 ${M_PI/2} 0" />
+      <geometry>
+        <cylinder length="${boom_length}" radius="0.3"/>
+      </geometry>
+      <material name="color1"/>
+    </visual>
+  </link>
+  <joint name="boom" type="revolute">
+    <origin xyz="${boom_offset_x} ${-boom_offset_y} ${boom_offset_z}" rpy="${M_PI/2} 0 0"/>
+    <parent link="body_link"/>
+    <child link="boom_link"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-${M_PI}" upper="${M_PI}" velocity="1.0" effort="300.0"/>
+  </joint>
+
+  <!-- arm_link -->
+  <link name="arm_link">
+    <visual>
+      <origin xyz="${arm_length/2} 0 0" rpy="0 ${M_PI/2} 0" />
+      <geometry>
+        <cylinder length="${arm_length}" radius="0.3"/>
+      </geometry>
+      <material name="color2"/>
+    </visual>
+  </link>
+  <joint name="arm" type="revolute">
+    <origin xyz="${boom_length} 0 0" rpy="0 0 0"/>
+    <parent link="boom_link"/>
+    <child link="arm_link"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-${M_PI}" upper="${M_PI}" velocity="1.0" effort="300.0"/>
+  </joint>
+
+  <!-- Link4 -->
+  <link name="bucket_link">
+    <visual>
+      <origin xyz="${bucket_length/2} ${tip_width/4} 0" rpy="0 0 0" />
+      <geometry>
+        <box size="${bucket_length} ${tip_width/2} ${tip_width}"/>
+      </geometry>
+      <material name="color3"/>
+    </visual>
+  </link>
+  <joint name="bucket" type="revolute">
+    <origin xyz="${arm_length} 0 0" rpy="0 0 0"/>
+    <parent link="arm_link"/>
+    <child link="bucket_link"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-${M_PI}" upper="${M_PI}" velocity="1.0" effort="300.0"/>
+  </joint>
+
+  <!-- 刃先中心 -->
+  <link name="tip_link">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </link>
+  <joint name="tip_link" type="fixed">
+    <origin xyz="${bucket_length} 0 0" rpy="${-M_PI} ${-M_PI/2} 0"/>
+    <parent link="bucket_link"/>
+    <child link="tip_link"/>
+  </joint>
+
+  <!-- 刃先右側 -->
+  <link name="tip_right_link">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </link>
+  <joint name="tip_right_link" type="fixed">
+    <origin xyz="${tip_width/2} 0 0" rpy="0 0 0"/>
+    <parent link="tip_link"/>
+    <child link="tip_right_link"/>
+  </joint>
+
+  <!-- 刃先左側 -->
+  <link name="tip_left_link">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </link>
+  <joint name="tip_left_link" type="fixed">
+    <origin xyz="${-tip_width/2} 0 0" rpy="0 0 0"/>
+    <parent link="tip_link"/>
+    <child link="tip_left_link"/>
+  </joint>
+</robot>

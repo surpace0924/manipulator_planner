@@ -1,0 +1,81 @@
+<?xml version="1.0" ?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <xacro:property name="M_PI" value="3.14159274"/>
+
+  <material name="color0">
+    <color rgba="${236/255} ${206/255} ${0/255} 1"/>
+  </material>
+  <material name="color1">
+    <color rgba="${109/255} ${97/255} ${176/255} 1"/>
+  </material>
+  <material name="color2">
+    <color rgba="${0/255} ${162/255} ${126/255} 1"/>
+  </material>
+  <material name="color3">
+    <color rgba="${222/255} ${67/255} ${92/255} 1"/>
+  </material>
+  <material name="color4">
+    <color rgba="${109/255} ${178/255} ${47/255} 1"/>
+  </material>
+  <material name="color5">
+    <color rgba="${150/255} ${78/255} ${157/255} 1"/>
+  </material>
+  
+  <xacro:macro name="cylinder_inertial" params="mass radius length *origin">
+    <inertial>
+      <xacro:insert_block name="origin"/>
+	  <mass value="${mass}"/>
+	  <inertia ixx="${((radius*radius)/4 + (length*length)/12)*mass}" ixy="0" ixz="0"
+			 iyy="${((radius*radius)/4 + (length*length)/12)*mass}" iyz="0"
+			 izz="${(mass*radius*radius)/2}" />
+    </inertial>
+  </xacro:macro>
+
+  <xacro:macro name="box_inertial" params="mass x y z *origin">
+    <inertial>
+      <xacro:insert_block name="origin"/>
+	  <mass value="${mass}"/>
+	  <inertia ixx="${(mass*(y*y+z*z))/12}" ixy="0" ixz="0"
+			 iyy="${(mass*(x*x+z*z))/12}" iyz="0"
+			 izz="${(mass*(x*x+y*y))/12}" />
+    </inertial>
+  </xacro:macro>
+
+  <xacro:macro name="joint_position_trans_v0" params="name">
+	<transmission name="${name}_trans">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="${name}">
+		<hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      </joint>
+	  <actuator name="${name}_motor">
+		<hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      </actuator>
+	</transmission>
+  </xacro:macro>
+
+  <xacro:macro name="joint_velocity_trans_v0" params="name">
+	<transmission name="${name}_trans">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="${name}">
+		<hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+      </joint>
+	  <actuator name="${name}_motor">
+		<hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+      </actuator>
+	</transmission>
+  </xacro:macro>
+
+  <xacro:macro name="joint_effort_trans_v0" params="name">
+	<transmission name="${name}_trans">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="${name}">
+		<hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+	  <actuator name="${name}_motor">
+		<hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </actuator>
+	</transmission>
+  </xacro:macro>
+
+</robot>

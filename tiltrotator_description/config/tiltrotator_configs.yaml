@@ -1,0 +1,24 @@
+tiltrotator_configs:
+  joint_names: ['body', 'boom', 'arm', 'bucket']
+  link_lengths:
+    boom_offset_x: 0.645
+    boom_offset_y: 0.130
+    boom_offset_z: 1.730
+    boom_length: 5.700
+    arm_length: 2.900
+    bucket_length: 1.450
+    tip_width: 1.0
+    a5: 0.283614673330477
+    d5: 0.370
+    d6: 1.088
+    h7: 0.737523044045579
+  joint_limits:
+    body: [-3.14159, 3.14159] # -180 deg to 180 deg
+    boom: [-0.42, 0.98]       # -24 deg to 56 deg
+    arm: [-2.27, -0.52]       # -130 deg to -30 deg
+    bucket: [-2.27, 0.35]     # -130 deg to 20 deg
+  joint_tolerances:
+    body: 0.05
+    boom: 0.05
+    arm: 0.05
+    bucket: 0.05

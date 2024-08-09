@@ -1,0 +1,23 @@
+<launch>
+  <rosparam file="$(find manipulator_planner)/tiltrotator_description/config/tiltrotator_configs.yaml" command="load" />
+  <rosparam file="$(find manipulator_planner)/backhoe_description/config/backhoe_configs.yaml" command="load" />
+  
+  <arg name="model" default="$(find manipulator_planner)/backhoe_description/urdf/backhoe.urdf.xacro"/>  
+  <!-- <arg name="model" default="$(find manipulator_planner)/tiltrotator_description/urdf/tiltrotator.urdf.xacro"/> -->
+  <param name="robot_description" command="$(find xacro)/xacro $(arg model)" />
+
+  <node name="tf_base_link" pkg="tf" type="static_transform_publisher" args="4 -2 0 1.5707 0 0 map base_link 100" />
+
+  <node name="manipulator_planner" pkg="manipulator_planner" type="manipulator_planner_node" output="screen">
+  </node>
+
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+  <node name="joint_state_publisher" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui"/>
+  
+  <!-- RViz -->
+  <arg name="rvizconfig" default="$(find manipulator_planner)/launch/display.rviz" />
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" required="true" output="screen">
+  </node>
+  
+</launch>

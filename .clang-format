@@ -15,7 +15,7 @@ BraceWrapping:
   AfterNamespace: true
   AfterStruct: true
 BreakBeforeBraces: Custom
-ColumnLimit: 120
+ColumnLimit: 150
 ConstructorInitializerIndentWidth: 0
 ContinuationIndentWidth: 2
 DerivePointerAlignment: false

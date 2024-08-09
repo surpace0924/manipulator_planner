@@ -1,0 +1,185 @@
+<?xml version="1.0" ?>
+<robot name="standard3link" xmlns:xacro="http://ros.org/wiki/xacro">
+  <!-- 設定ファイル読み込み -->
+  <xacro:property name="tiltrotator_configs_file" value="$(find manipulator_planner)/tiltrotator_description/config/tiltrotator_configs.yaml" />
+  <xacro:property name="tiltrotator_configs_dir" value="${xacro.load_yaml(tiltrotator_configs_file)}"/>
+  <xacro:property name="tiltrotator_configs" value="${tiltrotator_configs_dir['tiltrotator_configs']}"/>
+  <xacro:property name="link_lengths" value="${tiltrotator_configs['link_lengths']}"/>
+
+  <!-- 共通マクロと読み込み -->
+  <xacro:include filename="$(find manipulator_planner)/tiltrotator_description/urdf/common.xacro"/>
+
+  <!-- リンク長設定 -->
+  <xacro:property name="joint_names" value="${joint_names}" />
+  <xacro:property name="boom_offset_z" value="${link_lengths['boom_offset_z']}" />
+  <xacro:property name="boom_offset_y" value="${link_lengths['boom_offset_y']}" />
+  <xacro:property name="boom_offset_x" value="${link_lengths['boom_offset_x']}" />
+  <xacro:property name="boom_length" value="${link_lengths['boom_length']}" />
+  <xacro:property name="arm_length" value="${link_lengths['arm_length']}" />
+  <xacro:property name="bucket_length" value="${link_lengths['bucket_length']}" />
+  <xacro:property name="tip_width" value="${link_lengths['tip_width']}" />
+  <xacro:property name="a5" value="${link_lengths['a5']}" />
+  <xacro:property name="d5" value="${link_lengths['d5']}" />
+  <xacro:property name="d6" value="${link_lengths['d6']}" />
+  <xacro:property name="h7" value="${link_lengths['h7']}" />
+
+  <link name="base_footprint"/>
+  <link name="base_link" />
+
+  <joint name="base_footprint_joint" type="fixed">
+    <origin xyz="0 0 0"/>
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+  </joint>
+
+  <!-- Link1 -->
+  <link name="link1">
+    <visual>
+      <origin xyz="0 0 ${boom_offset_z/2}" rpy="0 0 0" />
+      <geometry>
+        <box size="${boom_offset_x} ${boom_offset_x} ${boom_offset_z}"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="body_rotate" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="link1"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-${M_PI}" upper="${M_PI}" velocity="1.0" effort="300.0"/>
+  </joint>
+
+  <!-- Link2 -->
+  <link name="link2">
+    <visual>
+      <origin xyz="${boom_length/2} 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="${boom_length} ${0.1} ${0.1}"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="boom" type="revolute">
+    <origin xyz="${boom_offset_x} ${-boom_offset_y} ${boom_offset_z}" rpy="${M_PI/2} 0 0"/>
+    <parent link="link1"/>
+    <child link="link2"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-${M_PI}" upper="${M_PI}" velocity="1.0" effort="300.0"/>
+  </joint>
+
+  <!-- Link3 -->
+  <link name="link3">
+    <visual>
+      <origin xyz="${arm_length/2} 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="${arm_length} ${0.1} ${0.1}"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="arm" type="revolute">
+    <origin xyz="${boom_length} 0 0" rpy="0 0 0"/>
+    <parent link="link2"/>
+    <child link="link3"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-${M_PI}" upper="${M_PI}" velocity="1.0" effort="300.0"/>
+  </joint>
+
+  <!-- Link4 -->
+  <link name="link4">
+    <visual>
+      <origin xyz="${a5/2} 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="${a5} ${0.1} ${0.1}"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="bucket" type="revolute">
+    <origin xyz="${arm_length} 0 0" rpy="0 0 0"/>
+    <parent link="link3"/>
+    <child link="link4"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-${M_PI}" upper="${M_PI}" velocity="1.0" effort="300.0"/>
+  </joint>
+
+  <!-- Link5 -->
+  <link name="link5">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="${0.1} ${0.1} ${0.6}"/>
+      </geometry>
+      <material name="red">
+        <color rgba="1 0 0 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="bucket_tilt" type="revolute">
+    <!-- z軸回転のオフセットを考慮すると"${-M_PI/2} ${-M_PI/2} 0"になる -->
+    <origin xyz="${a5} ${d5} 0" rpy="${-M_PI/2} ${-M_PI/2} 0"/>
+    <parent link="link4"/>
+    <child link="link5"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-${M_PI}" upper="${M_PI}" velocity="1.0" effort="300.0"/>
+  </joint>
+
+  <!-- Link6 -->
+  <link name="link6">
+    <visual>
+      <origin xyz="0 0 ${-d6/2}" rpy="0 0 0" />
+      <geometry>
+        <box size="0.2 0.2 ${d6}"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="bucket_rotate" type="revolute">
+    <origin xyz="0 ${d6} 0" rpy="${-M_PI/2} 0 0"/>
+    <parent link="link5"/>
+    <child link="link6"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-${M_PI}" upper="${M_PI}" velocity="1.0" effort="300.0"/>
+  </joint>
+
+  <!-- 刃先中心 -->
+  <link name="tip_center">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </link>
+  <joint name="tip_center" type="fixed">
+    <origin xyz="0 ${h7} 0" rpy="0 0 0"/>
+    <parent link="link6"/>
+    <child link="tip_center"/>
+  </joint>
+
+  <!-- 刃先右側 -->
+  <link name="tip_right">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </link>
+  <joint name="tip_right" type="fixed">
+    <origin xyz="${tip_width/2} 0 0" rpy="0 0 0"/>
+    <parent link="tip_center"/>
+    <child link="tip_right"/>
+  </joint>
+
+  <!-- 刃先左側 -->
+  <link name="tip_left">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </link>
+  <joint name="tip_left" type="fixed">
+    <origin xyz="${-tip_width/2} 0 0" rpy="0 0 0"/>
+    <parent link="tip_center"/>
+    <child link="tip_left"/>
+  </joint>
+</robot>
