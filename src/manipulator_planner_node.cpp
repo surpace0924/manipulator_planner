@@ -38,6 +38,7 @@ public:
     // パブリッシャ
     pub_marker_ = nh.advertise<visualization_msgs::Marker>("marker", 1);
     pub_debug_pose_array_ = nh.advertise<geometry_msgs::PoseArray>("debug_pose_array", 1);
+    pub_joint_targets_ = nh.advertise<sensor_msgs::JointState>("joint_targets", 1);
 
     // タイマー
     timer_ = nh.createTimer(ros::Duration(0.1), &ManipulatorPlanner::cb_timer, this);
@@ -53,6 +54,7 @@ private:
   ros::Subscriber sub_joint_states_;
   ros::Publisher pub_marker_;
   ros::Publisher pub_debug_pose_array_;
+  ros::Publisher pub_joint_targets_;
   ros::Timer timer_;
 
   void cb_timer(const ros::TimerEvent & event)
@@ -60,17 +62,31 @@ private:
     // 画面をクリアしてカーソルをホームポジションに移動
     std::cout << "\033[2J\033[H" << std::flush;
 
-    std::cout << "joint_states_: \n" << joint_states_ << std::endl;
-
     // 順運動学計算
     BackhoeKinematics<double> backhoe_kinematics(backhoe_config_);
-    auto joint_pos = backhoe_kinematics.solve_fk(joint_states_);
+    auto joint_poses = backhoe_kinematics.solve_fk(joint_states_);
 
     std::cout << "Joint positions:" << std::endl;
-    for (size_t i = 0; i < joint_pos.size(); ++i) {
+    for (size_t i = 0; i < joint_poses.size(); ++i) {
       std::cout << "Joint " << i << std::endl;
-      joint_pos[i].print();
+      joint_poses[i].print();
     }
+
+    Eigen::Matrix<double, 4, 1> solved_joint_state = backhoe_kinematics.solve_ik(joint_poses[4]);
+    std::cout << "joint_states_GT: " << joint_states_.transpose() << std::endl;
+    std::cout << "joint_states_IK: " << solved_joint_state.transpose() << std::endl;
+
+    // 差分ベクトル
+    Eigen::VectorXd diff = joint_states_ - solved_joint_state;
+
+    // 小さすぎる誤差は0にする
+    for (int i = 0; i < diff.size(); ++i) {
+      if (std::abs(diff[i]) < 1e-6) {
+        diff[i] = 0.0;
+      }
+    }
+
+    std::cout << "diff: " << diff.transpose() << std::endl;
 
     visualization_msgs::Marker marker;
     marker.header.frame_id = "base_link";
@@ -83,34 +99,40 @@ private:
     marker.scale.x = 0.01;
     marker.color.r = 1.0;
     marker.color.a = 1.0;
-    for (int i = 0; i < joint_pos.size() - 1; ++i) {
+    for (int i = 0; i < joint_poses.size() - 1; ++i) {
       geometry_msgs::Point p1, p2;
-      p1.x = joint_pos[i].position.x();
-      p1.y = joint_pos[i].position.y();
-      p1.z = joint_pos[i].position.z();
-      p2.x = joint_pos[i + 1].position.x();
-      p2.y = joint_pos[i + 1].position.y();
-      p2.z = joint_pos[i + 1].position.z();
+      p1.x = joint_poses[i].position.x();
+      p1.y = joint_poses[i].position.y();
+      p1.z = joint_poses[i].position.z();
+      p2.x = joint_poses[i + 1].position.x();
+      p2.y = joint_poses[i + 1].position.y();
+      p2.z = joint_poses[i + 1].position.z();
       marker.points.push_back(p1);
       marker.points.push_back(p2);
     }
     pub_marker_.publish(marker);
 
-    geometry_msgs::PoseArray pose_array_msg;
-    pose_array_msg.header.frame_id = "base_link";
-    pose_array_msg.header.stamp = ros::Time::now();
-    for (int i = 0; i < joint_pos.size(); ++i) {
-      geometry_msgs::Pose pose;
-      pose.position.x = joint_pos[i].position.x();
-      pose.position.y = joint_pos[i].position.y();
-      pose.position.z = joint_pos[i].position.z();
-      pose.orientation.w = joint_pos[i].orientation.w();
-      pose.orientation.x = joint_pos[i].orientation.x();
-      pose.orientation.y = joint_pos[i].orientation.y();
-      pose.orientation.z = joint_pos[i].orientation.z();
-      pose_array_msg.poses.push_back(pose);
-    }
-    pub_debug_pose_array_.publish(pose_array_msg);
+    // geometry_msgs::PoseArray pose_array_msg;
+    // pose_array_msg.header.frame_id = "base_link";
+    // pose_array_msg.header.stamp = ros::Time::now();
+    // for (int i = 0; i < joint_poses.size(); ++i) {
+    //   geometry_msgs::Pose pose;
+    //   pose.position.x = joint_poses[i].position.x();
+    //   pose.position.y = joint_poses[i].position.y();
+    //   pose.position.z = joint_poses[i].position.z();
+    //   pose.orientation.w = joint_poses[i].orientation.w();
+    //   pose.orientation.x = joint_poses[i].orientation.x();
+    //   pose.orientation.y = joint_poses[i].orientation.y();
+    //   pose.orientation.z = joint_poses[i].orientation.z();
+    //   pose_array_msg.poses.push_back(pose);
+    // }
+    // pub_debug_pose_array_.publish(pose_array_msg);
+
+    sensor_msgs::JointState joint_targets_msg;
+    joint_targets_msg.header.stamp = ros::Time::now();
+    joint_targets_msg.name = {"body", "boom", "arm", "bucket"};
+    joint_targets_msg.position = {solved_joint_state[0], solved_joint_state[1], solved_joint_state[2], solved_joint_state[3]};
+    pub_joint_targets_.publish(joint_targets_msg);
   }
 
   std::string get_shape(const Eigen::MatrixXd & mat)

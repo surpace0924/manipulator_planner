@@ -1,6 +1,7 @@
 #pragma once
 #include <Eigen/Dense>
 #include <backhoe_config.h>
+#include <angles.h>
 
 template <typename T>
 class BackhoeKinematics
@@ -52,6 +53,97 @@ public:
     joint_pose.push_back(tmp_joint_pose[6]);  // tip_link
 
     return joint_pose;
+  }
+
+  Eigen::Matrix<T, 4, 1> solve_ik(const Pose<T> & pose)
+  {
+    // step1 旋回角を求める
+    T body_angle = 0;
+    for (int i = 0; i < 100; ++i) {
+      // 仮の角度を用いてboomの位置を計算
+      T boom_pos_x = config_.boom_offset_x * std::cos(body_angle) + config_.boom_offset_y * std::sin(body_angle);
+      T boom_pos_y = config_.boom_offset_x * std::sin(body_angle) - config_.boom_offset_y * std::cos(body_angle);
+
+      // 目標位置との差分を計算
+      T dx = pose.position.x() - boom_pos_x;
+      T dy = pose.position.y() - boom_pos_y;
+
+      // 仮の角度を計算
+      T tmp_body_angle = Angles::normalize(atan2(dy, dx));
+      T diff = std::abs(Angles::shortest_angle(tmp_body_angle, body_angle));
+
+      // 収束判定
+      if (diff < 1e-9) {
+        break;
+      }
+
+      // 更新
+      body_angle = tmp_body_angle;
+      body_angle = tmp_body_angle;
+    }
+
+    // step2 boom軸位置が原点、目標位置方向がx軸、上向きがy軸となるような座標系を定義して、目標位置と角度を計算
+    T x = pose.position.x();
+    T y = pose.position.y();
+    T z = pose.position.z();
+    T target_x = std::sqrt(x * x + y * y) - config_.boom_offset_x;
+    T target_y = z - config_.boom_offset_z;
+
+    // 四元数をEuler角に変換
+    // ZYX順 (Yaw, Pitch, Roll)
+    Eigen::Vector3d eulerAngles = pose.orientation.toRotationMatrix().eulerAngles(2, 1, 0);
+    T target_angle = eulerAngles[2] + M_PI / 2;
+
+    // step3 bucket軸の位置を計算
+    T bucket_x = config_.bucket_length * std::cos(target_angle) + target_x;
+    T bucket_y = config_.bucket_length * std::sin(target_angle) + target_y;
+
+    // step4 arm軸の位置を計算
+    // boom軸原点でboom長さの半径の円と、bucket軸位置でarm長さの半径の円の交点を求める
+    T arm_x, arm_y;
+    Eigen::Matrix<T, 2, 1> center1(0, 0);
+    Eigen::Matrix<T, 2, 1> center2(bucket_x, bucket_y);
+    std::pair<Eigen::Matrix<T, 2, 1>, Eigen::Matrix<T, 2, 1>> points =
+      find_circle_intersections(center1, config_.boom_length, center2, config_.arm_length);
+
+    // Step5 ジョイント角度の計算
+    T boom_angle, arm_angle, bucket_angle;
+    if (std::isnan(points.first.x())) {
+      // 交点がない場合
+      // step5 ジョイント角度の計算
+      boom_angle = std::atan2(bucket_y, bucket_x);
+      arm_angle = 0;  // armの角度範囲のうち最も0に近い角度
+      bucket_angle = std::atan2(target_y, target_x) - arm_angle - boom_angle;
+    } else {
+      // 交点のうち、y座標が大きい方を選択
+      Eigen::Matrix<T, 2, 1> p1 = points.first;
+      Eigen::Matrix<T, 2, 1> p2 = points.second;
+      if (p1.y() > p2.y()) {
+        arm_x = p1.x();
+        arm_y = p1.y();
+      } else {
+        arm_x = p2.x();
+        arm_y = p2.y();
+      }
+
+      // step5 ジョイント角度の計算
+      boom_angle = std::atan2(arm_y, arm_x);
+      arm_angle = std::atan2(bucket_y - arm_y, bucket_x - arm_x) - boom_angle;
+      bucket_angle = std::atan2(target_y - bucket_y, target_x - bucket_x) - arm_angle - boom_angle;
+    }
+
+    // パッキング
+    Eigen::Matrix<T, 4, 1> joint_states;
+    joint_states[0] = body_angle;
+    joint_states[1] = boom_angle;
+    joint_states[2] = arm_angle;
+    joint_states[3] = bucket_angle;
+
+    // 角度を正規化
+    for (int i = 0; i < 4; ++i) {
+      joint_states[i] = Angles::normalize(joint_states[i]);
+    }
+    return joint_states;
   }
 
 private:
@@ -118,5 +210,29 @@ private:
       joint_pos[i + 1].orientation = Eigen::Quaternion<T>(rot_mat);
     }
     return joint_pos;
+  }
+
+  std::pair<Eigen::Matrix<T, 2, 1>, Eigen::Matrix<T, 2, 1>> find_circle_intersections(
+    Eigen::Matrix<T, 2, 1> center1, T r1, Eigen::Matrix<T, 2, 1> center2, T r2)
+  {
+    // 2つの円の中心間の距離
+    T d = (center2 - center1).norm();
+
+    // 交点がない場合
+    if (d > r1 + r2 || d < std::abs(r1 - r2) || d == 0) {
+      return {
+        Eigen::Matrix<T, 2, 1>(std::numeric_limits<T>::quiet_NaN(), std::numeric_limits<T>::quiet_NaN()),
+        Eigen::Matrix<T, 2, 1>(std::numeric_limits<T>::quiet_NaN(), std::numeric_limits<T>::quiet_NaN())};
+    }
+
+    T a = (r1 * r1 - r2 * r2 + d * d) / (2 * d);
+    T h = std::sqrt(r1 * r1 - a * a);
+
+    Eigen::Matrix<T, 2, 1> p2 = center1 + a * (center2 - center1) / d;
+
+    Eigen::Matrix<T, 2, 1> intersection1 = p2 + h * Eigen::Matrix<T, 2, 1>(center2.y() - center1.y(), center1.x() - center2.x()) / d;
+    Eigen::Matrix<T, 2, 1> intersection2 = p2 - h * Eigen::Matrix<T, 2, 1>(center2.y() - center1.y(), center1.x() - center2.x()) / d;
+
+    return {intersection1, intersection2};
   }
 };
