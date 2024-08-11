@@ -27,6 +27,10 @@
     </node>
   </group>
 
+  <node pkg="grid_map_visualization" type="grid_map_visualization" name="grid_map_visualization" output="screen">
+    <rosparam command="load" file="$(find manipulator_planner)/config/grid_map_config.yaml" />
+  </node>
+
   <!-- RViz -->
   <arg name="rvizconfig" default="$(find manipulator_planner)/launch/display.rviz" />
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" required="true" output="screen">

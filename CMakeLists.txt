@@ -10,6 +10,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Eigenライブラリのパスを指定
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
+find_package(OpenCV REQUIRED)
 # # Pythonのパッケージを探す
 # find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 # find_package(Python3 REQUIRED COMPONENTS NumPy)
@@ -35,6 +36,9 @@ set(DEPEND_ROS_PKGS
   geometry_msgs
   trajectory_msgs
   visualization_msgs
+  grid_map_msgs
+  grid_map_ros
+  cv_bridge
 )
 
 find_package(catkin REQUIRED
@@ -46,14 +50,16 @@ catkin_package(
  INCLUDE_DIRS include
  CATKIN_DEPENDS
  ${DEPEND_ROS_PKGS}
+ DEPENDS OpenCV
 )
 
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 add_executable(manipulator_planner_node src/manipulator_planner_node.cpp)
 add_dependencies(manipulator_planner_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(manipulator_planner_node ${catkin_LIBRARIES} Eigen3::Eigen)
+target_link_libraries(manipulator_planner_node ${catkin_LIBRARIES} Eigen3::Eigen ${OpenCV_LIBRARIES})

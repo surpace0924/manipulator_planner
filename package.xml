@@ -25,4 +25,13 @@
 
     <build_depend>visualization_msgs</build_depend>
     <exec_depend>visualization_msgs</exec_depend>
+
+    <build_depend>grid_map_msgs</build_depend>
+    <exec_depend>grid_map_msgs</exec_depend>
+
+    <build_depend>grid_map_ros</build_depend>
+    <exec_depend>grid_map_ros</exec_depend>
+
+    <build_depend>cv_bridge</build_depend>
+    <exec_depend>cv_bridge</exec_depend>
 </package>
